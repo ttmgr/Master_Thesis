@@ -65,5 +65,63 @@ $ python flair.py collapse -f <reference_annotation.gtf> -g <reference_genome.fa
 
 
 
+## StringTie2
+
+### Installation and Dependencies
+```shell
+git clone https://github.com/mpertea/stringtie2
+cd stringtie2
+make release
+```
+
+### Alignment Step with minimap2
+```shell
+$ minimap2 -ax splice <reference_genome.fa> <sample_reads.fa> <aligned_reads.sam> [options]
+```
+
+### Converting the read data to .bam format and sorting them by coordinates 
+```shell  
+$ samtools view -bS <aligned_reads.sam> > <aligned_sample.bam> [options]
+$ samtools sort <aligned_sample.bam> -o <sorted_aligned_sample.bam> [options]
+```
+
+### Afterwards StringTie2 is applied to assemble the transcriptome. The -L option is obligatory for long read based assemblies
+
+```shell  
+stringtie -L <sample.bam> -o <assembly.gtf> [options]
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
