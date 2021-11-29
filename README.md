@@ -124,6 +124,13 @@ $ stringtie <sorted_reads.bam> -o <assembly.gtf> [options]
 
 
 
+# Hybrid Approaches
+
+## StringTie2 offers an option which takes aligned and sorted reads from short and long read sequencing. The long reads have to be the second read file but no -L option is necessary. 
+```shell
+stringtie --mix <short_reads.bam> <long_reads.bam> -o <mixed.assembly.gtf>
+```
+
 
 
 
