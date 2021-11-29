@@ -1,0 +1,572 @@
+# Tim Reska - 11182193 - Hybrid Assembly - Myo Dataset 
+To Do:
+
+-isoswitcheR
+-github prettty
+
+
+# Long-Reads 
+
+################################################
+
+## Flair-Simple
+
+### Installation and Dependencies
+
+```shell
+$ mkdir FLAIR
+$ cd FLAIR
+$ git clone https://github.com/BrooksLabUCSC/flair.git
+$ cd flair
+```
+
+### Aligning and Sorting
+
+Alignment was done with minimap2
+```shell
+minimap2 -ax splice <genome.fa> <nanopore-cdna.fa> > <alignedreads.sam> [options]
+```
+
+Converting the .sam file to a .bam file
+```shell  
+samtools view -bS <alignedreads.sam> > <aligned.sample.bam> [options]
+```
+
+Eventually the reads were sorted by coordinates with SamTools
+```shell  
+samtools sort aligned.sample.bam -o sorted.aligned.sample.bam [options]
+```
+Subsequently the .bam was converted to the .bed format
+```shell
+python bam2Bed12.py -i <input.aligned.sorted.bam> > <output.aligned.sorted.bed>
+```
+Read correction with the help of an annotation
+```shell
+python flair.py correct -q <query.bed> -g <genome.fa> -f <annotation.gtf> --threads 24
+```
+
+Practical Execution
+
+```
+Correcting
+```shell
+python /data/longreads/sw/flair/flair.py correct --gtf /gcm-lfs1/longreads/mouse_ref/Mus_musculus.GRCm39.103.chr.gtf -q mt2.sorted.bed -o mt2.sorted.flair.corrected_gtf -t 20 -g /gcm-lfs1/longreads/mouse_ref/Mus_musculus.GRCm39.dna.primary_assembly.fa
+```
+
+Collapsing
+```shell
+ python /data/longreads/sw/flair/flair.py collapse -f /gcm-lfs1/longreads/mouse_ref/Mus_musculus.GRCm39.103.chr.gtf -q mb2.sorted.flair.corrected_gtf_all_corrected.bed -o mb2.collapse.isoforms.grcm39_correct. -t 30 -g /gcm-lfs1/longreads/mouse_ref/Mus_musculus.GRCm39.dna.primary_assembly.fa -r /gcm-lfs1/longreads/myo/MB2/MB2.cat.fastq --temp_dir /gcm-lfs1/tim/HybridAssembly/FLAIR/flair/Felt_Cute_Might_Delete_Later/
+```
+
+### Comparing to Reference genome
+
+gffcompare -r <annotation.gtf> -o Reference.vs.LongRead <collapsed_isoforms.gtf>
+
+### All in one flair application
+
+This simple mode from flair allows it to do all three steps subsequently with one command
+
+```shell
+python flair.py 123 -g <genome.fa> -f <annotation.gtf> -r <raw_reads.fasta|fastq> -o <flair.output> --temp_dir temp_flair/ --threads 24
+```
+/gcm-lfs1/tim/HybridAssembly/SanityFlair/
+
+## StringTie
+
+### Aligning and Sorting
+
+Alignment was done with minimap2 
+```shell
+minimap2 -ax splice <genome.fa> <nanopore-cdna.fa> > <alignedreads.sam> [options]
+```
+
+Converting the .sam file to a .bam file
+
+```shell  
+samtools view -bS <alignedreads.sam> > <aligned.sample.bam> [options]
+```
+
+Eventually the reads were sorted by coordinates with SamTools
+
+```shell  
+samtools sort aligned.sample.bam -o sorted.aligned.sample.bam [options]
+```
+
+/gcm-lfs1/tim/HybridAssembly/LongRead_Alignment_and_Indices
+
+### Assembly
+
+Subsequently the .gtf file was generated with StringTie given the option -L for long-read transcriptome assembly
+
+```shell  
+stringtie -L <sample.bam> -o <assembly.gtf> [options]
+```
+
+/gcm-lfs1/tim/HybridAssembly/LR_GTFs/Normal_Final
+
+
+# Short-Reads
+
+## Aligning and Sorting
+
+First, we have to generate an index for STAR aligner
+
+```shell
+STAR --runThreadN 10  --runMode genomeGenerate --genomeDir /path/to/STAR/genome/folder --genomeFastaFiles /path/to/genome/folder
+```
+
+Afterwards, we can align the sample reads to the reference genome
+
+```shell
+STAR --runThreadN 10 --runMode alignReads --outSAMtype BAM Unsorted --genomeDir /path/to/STAR/genome/folder --outFileNamePrefix {sample name} --readFilesIn <read1_file.fa> <read2_file.fa> --sdjdbGTFfile <referenceannotation.gtf> --twopassMode Basic --outSAMstrandField intronMotif
+```
+
+The reads were sorted by coordinates with SamTools
+
+```shell
+samtools sort <reads.bam> -o <sortedreads.bam> [options]
+```
+/gcm-lfs1/tim/HybridAssembly/ShortRead_Alignments_and_Indices/
+
+## Assembly
+
+The sorted and aligned bam was then assembled without annotation by StringTie
+
+```shell
+stringtie <sortedreads.bam> -o <assembly.gtf> 
+```
+/gcm-lfs1/tim/HybridAssembly/SR_GTFs/Final
+
+
+# Hybrid-Approach
+
+
+## StringTie --mix Approach
+
+Generating the gtf from mapped short- and long-read alignments. No -L option required in this case from stringtie but the second input has to be the longread file
+
+```shell
+stringtie --mix <short_reads.bam> <long_reads.bam> -o <mixed.assembly.gtf>
+```
+
+## FLAIR hybrid approach by correcting the LR with SR splice junctions
+
+```shell
+python flair.py align -g <genome.fa> -r <reads.fa> -o <output_prefix> [options]
+```
+
+The splice junction file for the error correction is an output from STAR two pass alignment
+
+```shell
+python flair.py correct -j <short_read_splice_junctions.SJ.out.tab> -g <genome.fa> -q <query.bed> 
+```
+
+Does not output a .gtf file so we use the internal python script from flair to create it
+```shell
+python psl_to_gtf.py <collapse.output.bed> > <collapsed_isoforms.gtf>
+```
+
+
+Correcting the short-read splice junctions for correction
+
+It is recommended that the user remove infrequently used junctions i.e. junctions with few supporting junction reads, which are in the 5th column of the SJ.out.tab file.
+```shell
+awk '{ if ($7 > 2) { print } }' outname.sj_junctions.bed > outname.filtered.bed
+```
+
+# Transcriptome Evaluation
+
+## Separating the long-read based assemblies from short-read based assemblies 
+
+
+1) Compare the short read assemblies to the long read assemblies with gffcompare and vice versa
+
+```shell
+gffcompare -r <long_read.gtf> -o LR.vs.SR <short_read.gtf>  
+
+gffcompare -r <short_read.gtf> -o SR.vs.LR <long_read.gtf>
+```
+
+2) Extract exact transcript matches from the .refmap generated from gffcompare for short and long reads
+
+```shell
+cat <SR.vs.LR.SR.gtf.tmap> | awk '$3!="="{print $5}' | sort > Sample.UniqueLR.txt
+
+cat <SR.vs.LR.LR.gtf.refmap> | awk '$3=="="{print $2}' | sort > Sample.Common.txt
+
+cat <LR.vs.SR.SR.gtf.tmap> | awk '$3!="="{print $5}' | sort > Sample.UniqueSR.txt
+```
+
+3) Use gtfFilter to Filter out transcrtips only found with longreads or shortreads
+
+```shell
+gtfFilter -m whiteT -l <common.txt> <long_read_assembly.gtf> <common.gtf>
+
+gtfFilter -m whiteT -l <long_read_unique.txt> <long_read_assembly.gtf> <long_read_unique.gtf>
+
+gtfFilter -m whiteT -l <short_read_unique.txt> <short_read_assembly.gtf> <short_read_unique.gtf>
+```
+
+## Transcriptome Evaluation with gffcompare
+
+Applying gffcompare to compare different short- and long-read assemblies to the reference and between themselves 
+
+```shell
+gffcompare -r <annotation.gtf> -o Reference.vs.ShortRead <short_read_assembly.gtf> 
+
+gffcompare -r <annotation.gtf> -o Reference.vs.ShortReadUnique <short_read_unique.gtf> 
+
+gffcompare -r <annotation.gtf> -o Reference.vs.LongRead LongRead.gtf <long_read_assembly.gtf>
+
+gffcompare -r <annotation.gtf> -o Reference.vs.LongReadUnique <long_read_unique.gtf>
+
+gffcompare -r <annotation.gtf> -o Reference.vs.CommonReads <common.gtf>
+
+gffcompare -r <annotation.gtf> -o Reference.vs.MixedRead <mixed_assembly.gtf>
+
+gffcompare -r <mixed_assembly.gtf> -o MixedRead.vs.Concatenated <concatenated.gtf>
+
+```
+
+
+# Quantitative Analysis
+
+## ONT Quantification with Salmon --ont
+
+Building the index for quantification
+
+```shell
+salmon index -t <genome.fa> -i transcripts_index -k 31 -p 10
+```
+
+Quantifying the reads 
+
+```shell
+salmon quant --ont -t <genome.fa> -l A -a <aligned_unsorted.bam> -o sample_output -p 24
+```
+
+## Quantifying the Assemblies with GFFRead and Salmon
+
+Extracting the transcripts from the assemblies
+
+```shell
+gffread -w <extracted_transcripts.fa> <sample_assembly.gtf> -g <reference_genome.fasta> -p 10
+```
+
+Quantification with Salmon
+
+```shell
+salmon quant --index grcm39_index/ -l A -r <extracted_transcripts.fa> -o sample_output -p 24
+```
+
+## Quantification directly via StringTie
+
+```shell
+stringtie -e -b count_matrices/ -A <sample_abundances.csv> -G <all_assemblies_merged.gtf> 
+```
+
+
+## Quantification with FLAIR quantify
+
+###
+Before quantification is possible, all raw reads and all flair-corrected reads have to be pooled and collapsed
+
+```shell
+cat <sample1.fastq> <sample2.fastq> <sample3.fastq> <sample4.fastq> > all_raw_reads.fastq
+cat <sample1_corrected_reads.bed> <sample2_corrected_reads.bed> <sample3_corrected_reads.bed> <sample4_corrected_reads.bed> > all_corrected_reads.bed 
+```
+
+
+```shell
+python flair.py quantify -r <reads_manifest.tsv> -i <collapsed_isoforms.fa> -o output_sample/ --temp_dir tempdir/ -t 30 
+```
+
+```shell
+python diff_iso_usage.py <sample_counts.tsv> Column_name_sample1 Column_name_sample2 <iso_usage.txt>
+```
+
+```shell
+python plot_isoform_usage.py <all_corrected_reads.bed> <sample_counts_all_samples.tsv>
+```
+
+# Differential Expression Analysis with RStudio and DESeq2
+## For Salmon Quant Data
+```shell
+library("rtracklayer")
+library("tximport")
+library("GenomicFeatures")
+library("DESeq2")
+library("biomaRt")
+library("pheatmap")
+library("RColorBrewer")
+library("ggplot2")
+library("EnhancedVolcano")
+
+#Read Data in 
+samples<-read.csv("all_merged_myo.csv",sep=";",header=TRUE,row.names=1)
+annot  <-rtracklayer::import("Mus_musculus.GRCm39.103.chr.gtf")
+
+#Add gene names
+txdb   <-makeTxDbFromGFF(file="Mus_musculus.GRCm39.103.chr.gtf")
+saveDb(x=txdb,file="Mus_musculus.GRCm39.103.chr.gtf")
+
+k      <-keys(txdb,keytype="TXNAME")
+tx2gene<-select(txdb,k,"GENEID","TXNAME")
+head(tx2gene)
+
+
+#Create a matrix for the counts and rownames corresponding to the gene id
+cts     <-as.matrix(samples,sep="\t",row.names="Name")
+countDataMatrix <- as.matrix(cts[ , -1])
+rownames(countDataMatrix) <- cts[ , 1]
+
+#Create a dataframe with the conditions and the column information
+condition<-factor(c(rep("mb",3),rep("mt",3)))
+coldata<-data.frame(row.names=colnames(cts),condition)
+
+
+cleaned_samples<-na.omit(samples)
+dds<-DESeqDataSetFromMatrix(countData=round(cleaned_samples),colData=coldata,design=~condition)             
+dds
+dds<-DESeq(dds)
+
+#Filtering
+nrow(dds)
+keep <- rowSums(counts(dds)) >= 1
+dds <- dds[keep,]
+nrow(dds)
+
+#Relevel
+dds$condition <- relevel(dds$condition, ref = "mb")
+
+#rlog transform for pca plot
+rld <- rlog(dds, blind = FALSE)
+head(assay(rld), 3)
+
+sampleDists <- dist(t(assay(rld)))
+sampleDists
+
+sampleDistMatrix <- as.matrix( sampleDists )
+rownames(sampleDistMatrix) <- paste( rownames(sampleDistMatrix), 
+                                     coldata$condition, 
+                                     sep = " - " )
+colnames(sampleDistMatrix) <- NULL
+colors <- colorRampPalette( rev(brewer.pal(9, "Blues")) )(255)
+pheatmap(sampleDistMatrix,
+         clustering_distance_rows = sampleDists,
+         clustering_distance_cols = sampleDists,
+         col = colors,
+         show_rownames = TRUE,
+         show_colnames = TRUE)
+
+pheatmap(sampleDistMatrix,
+         cluster_rows = FALSE,
+         cluster_cols = FALSE,
+         clustering_distance_rows = sampleDists,
+         clustering_distance_cols = sampleDists,
+         col = colors)
+
+z <- plotPCA(rld, intgroup = c("condition"))
+z + ggtitle("PCA plot")
+
+#Results
+dds <- DESeq(dds)
+foldchange <- 1.5
+lfc <- log2(foldchange)
+pval <- 0.05
+
+res1 <- results(dds, 
+                contrast=c("condition","mt","mb"),
+                alpha = pval, # p-value - adjusted
+)
+
+head(mcols(dds, use.names = TRUE))
+summary(res1)
+
+
+#Add gene names
+txdb<-makeTxDbFromGFF(file="Mus_musculus.GRCm39.103.chr.gtf")
+saveDb(x=txdb,file="Mus_musculus.GRCm39.103.chr.gtf")
+k<-keys(txdb,keytype="TXNAME")
+tx2gene<-select(txdb,k,"GENEID","TXNAME")
+head(tx2gene)
+
+
+#Create genemap with biomaRt
+library("biomaRt")
+ensemble_mmusculus <- useMart("ensembl", 
+                             dataset = "mmusculus_gene_ensembl")
+
+genemap <- getBM(attributes = c('ensembl_transcript_id_version', 
+                            'ensembl_gene_id', 
+                            'external_transcript_name',
+                            'external_gene_name'),
+             filters = 'ensembl_transcript_id_version', 
+             values = transcript_ids,
+             mart = ensemble_mmusculus)
+
+
+res1_df <- as.data.frame(res1)
+mydf<-cbind(rownames(res1_df),res1_df)
+rownames(mydf) <- NULL
+colnames(mydf)<-c("ensembl_transcript_id_version",
+                  "baseMean","log2FoldChange",
+                  "lfcSE","stat","pvalue",
+                  "padj")
+res1_df=left_join(x=mydf,y=genemap,
+                by="ensembl_transcript_id_version")
+head(res1_df)
+
+#Subsetting
+res1_Sig <- subset(res1_df, 
+                   # padj<0.05, 
+                   abs(log2FoldChange)>lfc)
+res1_Sig <- subset(res1_Sig,
+                   padj<0.05)
+summary(res1)
+summary(res1_Sig)
+nrow(res1_df)
+nrow(res1_Sig)
+
+#Volcanoplot 
+plotMA( res1, ylim = c(-5, 5), alpha = 0.05 , main = "myoblast vs myotube")
+
+
+#Histogram pvalues
+hist( res1$pvalue, breaks=20, col="grey" , main = "pvalue histogram\ myoblast vs myotube", xlab = "pvalue")
+
+
+
+res1_Ordered <- res1_df[order(res1_df$pvalue),]
+write.table(as.data.frame(res1_Ordered), 
+            file.path("Tables/", "res1.txt"),
+            quote = FALSE,
+            col.names = TRUE,
+            row.names = FALSE,
+            sep = "\t")
+
+
+res1_Sig_Ordered <- res1_Sig[order(res1_Sig$pvalue),]
+head(res1_Sig_Ordered)
+write.table(as.data.frame(res1_Sig_Ordered), 
+            file.path("Tables/", "res1_sig.txt"),
+            quote = FALSE,
+            col.names = TRUE,
+            row.names = FALSE,
+            sep = "\t")
+
+
+
+upreg_res1 <- subset(res1_Sig_Ordered, res1_Sig_Ordered$log2FoldChange>0)
+write.table(as.data.frame(unique(upreg_res1$ensembl_gene_id)),
+            file.path("Tables/", "upreg_res1.txt"),
+            quote = FALSE,
+            col.names = FALSE,
+            row.names = FALSE) 
+write.table(as.data.frame(unique(upreg_res1$external_gene_name)),
+            file.path("Tables/", "upregunique_res1.txt"),
+            quote = FALSE,
+            col.names = FALSE,
+            row.names = FALSE)
+
+downreg_res1 <- subset(res1_Sig_Ordered, res1_Sig_Ordered$log2FoldChange < 0)
+write.table(as.data.frame(unique(downreg_res1$ensembl_gene_id)),
+            file.path("Tables/", "downreg_res1.txt"),
+            quote = FALSE,
+            col.names = FALSE,
+            row.names = FALSE)
+
+write.table(as.data.frame(unique(downreg_res1$external_gene_name)),
+            file.path("Tables/", "downregunique_res1_gene_id.txt"),
+            quote = FALSE,
+            col.names = FALSE,
+            row.names = FALSE)
+```
+
+
+## For StringTie Abundances it is basically the same, except this junk of code has to be altered: 
+
+```shell
+#Create genemap with biomaRt
+library("biomaRt")
+ids<-as.matrix(c(rownames(cts)))
+colnames(ids)="ensembl_gene_id"
+ensemble_mmusculus <- useMart("ensembl", 
+                              dataset = "mmusculus_gene_ensembl")
+
+genemap <- getBM(attributes = c('ensembl_gene_id', 
+                                'ensembl_transcript_id_version', 
+                                'external_transcript_name',
+                                'external_gene_name'),
+                 filters = 'ensembl_gene_id', 
+                 values = ids,
+                 mart = ensemble_mmusculus)
+
+
+res1_df <- as.data.frame(res1)
+mydf<-cbind(rownames(res1_df),res1_df)
+rownames(mydf) <- NULL
+colnames(mydf)<-c("ensembl_gene_id",
+                  "baseMean","log2FoldChange",
+                  "lfcSE","stat","pvalue",
+                  "padj")
+res1_df=left_join(x=mydf,y=genemap,
+                  by="ensembl_gene_id")
+```
+
+
+# Simulating Reads with Polyester 
+
+Segmentation fault for generating short reads based on the long reads on server and on my pc.
+
+# SQANTI3 - Version 3.0
+
+
+
+## Setup
+
+A)  Building from source , creating an environment, and activating it
+
+```shell
+ $ git clone https://github.com/ConesaLab/SQANTI3.git
+ $ cd SQANTI3
+ $ conda env create -f SQANTI3.conda_env.yml
+ $ source activate SQANTI3.env
+```
+
+B) Installing dependencies
+
+ 1)  GTF to Gene Prediction is necessary for SQANTI to work; downloading it directly into /SQANTI3/utilities
+ 
+ ```shell
+ wget http://hgdownload.cse.ucsc.edu/admin/exe/linux.x86_64/gtfToGenePred -P <PATH:TO>/SQANTI3/utilities/chmod +x <PATH:TO>/SQANTI3/utilities/gtfToGenePred
+ ```
+ 
+ 2)  cDNA_Cupcake also has to be installed
+ 
+ ```shell
+ (SQANTI3.env)$ git clone https://github.com/Magdoll/cDNA_Cupcake.git
+ (SQANTI3.env)$ cd cDNA_Cupcake
+ (SQANTI3.env)$ python setup.py build
+ (SQANTI3.env)$ python setup.py install
+ ```
+ 
+ 3)  Before running SQANTI3 /SQANTI3/cDNA_Cupcake/sequence and /SQANTI3/cDNA_Cupcake/ have to be added to $PYTHONPATH
+ 
+ ```shell
+ $ export PYTHONPATH=$PYTHONPATH:/PATH:TO/SQANTI3/cDNA_Cupcake/sequence/
+ $ export PYTHONPATH=$PYTHONPATH:/PATH:TO/MYO/SQANTI3/cDNA_Cupcake/
+```
+
+
+### Necessary Input Assembled Transcriptome as GTF/GFF3 (with the --gtf option); but stringtie generates unwanted textlines within the gtf which have to be removed to conduct the qc as well as the transcripts without strandinformation have to be removed with
+
+```shell
+awk '$7 != "."' <input_file.gtf> > <output_file.gtf>
+```
+
+### Running sqanti3_qc.py with the following command
+
+```shell
+(SQANTI3.env) $ python sqanti3_qc.py --gtf <TranscriptomeOfInterest.Sample.gtf|gff3> <Annotation.gtf|gff3> <ReferemceGenome.Fasta> -t 24 
+```
