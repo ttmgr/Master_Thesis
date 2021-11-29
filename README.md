@@ -61,7 +61,7 @@ $ python flair.py correct -q <aligned_sorted.bed> -g <genome.fa> -f <annotation.
 $ python flair.py collapse -f <reference_annotation.gtf> -g <reference_genome.fa> -q <corrected_reads.bed> -o output_prefix -r <sample_reads.fa> --temp_dir /tmp_folder
 ```
 
-
+### The final output are high-confidence isoforms in several formats, however interesting for us are only the <isoforms.fasta> and the <isoforms.gtf>.
 
 
 
