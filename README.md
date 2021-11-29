@@ -69,9 +69,9 @@ $ python flair.py collapse -f <reference_annotation.gtf> -g <reference_genome.fa
 
 ### Installation and Dependencies
 ```shell
-git clone https://github.com/mpertea/stringtie2
-cd stringtie2
-make release
+$ git clone https://github.com/mpertea/stringtie2
+$ cd stringtie2
+$ make release
 ```
 
 ### Alignment Step with minimap2
@@ -88,20 +88,34 @@ $ samtools sort <aligned_sample.bam> -o <sorted_aligned_sample.bam> [options]
 ### Afterwards StringTie2 is applied to assemble the transcriptome. The -L option is obligatory for long read based assemblies
 
 ```shell  
-stringtie -L <sample.bam> -o <assembly.gtf> [options]
+$ stringtie -L <sorted_aligned_sample.bam> -o <assembly.gtf> [options]
 ```
 
 
 
+# Short read data
 
+### Installation and Dependencies
+```shell
+wget https://github.com/alexdobin/STAR/archive/2.7.9a.tar.gz
+tar -xzf 2.7.9a.tar.gz
+cd STAR-2.7.9a
+```
 
+### The first step for aligning paired-end reads with STAR is generating a genome index for it
+```shell
+STAR --runThreadN 10  --runMode genomeGenerate --genomeDir /path/to/STAR/genome/folder --genomeFastaFiles /path/to/genome/folder
+```
 
+### The alignment step is then executed with respect to generated index. Here the option --outSAMstrandField intronMotif is necessary for the transcriptome assembly downstream. 
+```shell
+STAR --runThreadN 10 --runMode alignReads --outSAMtype BAM Unsorted --genomeDir /path/to/STAR/genome/folder --outFileNamePrefix {sample name} --readFilesIn <read1_file.fa> <read2_file.fa> --sdjdbGTFfile <reference_annotation.gtf> --twopassMode Basic --outSAMstrandField intronMotif
+```
 
-
-
-
-
-
+### Now the reads have again to be sorted by coordinates with samtools. In theory sorting it on-the-fly within STAR is possible, but it requires a lot of computational resources.
+```shell
+samtools sort <reads.bam> -o <sortedreads.bam> [options]
+```
 
 
 
