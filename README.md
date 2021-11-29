@@ -19,8 +19,22 @@ combined approach.
 ## Qualitative Evaluation
 -Gffcompare and SQANTI3 were used for evaluation of all assemblies
 
+## Additional requirements
+-bedtools
+-python v3.0+ and python modules: intervaltree,kerneltree,tqdm,pybedtools and pysamv0.8.4+
 
 
+# Long read data
+
+##FLAIR
+
+### Installation and Dependencies
+```shell
+$ mkdir FLAIR
+$ cd FLAIR
+$ git clone https://github.com/BrooksLabUCSC/flair.git
+$ cd flair
+```
 
 
 
