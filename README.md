@@ -23,6 +23,10 @@ combined approach.
 -bedtools
 -python v3.0+ and python modules: intervaltree,kerneltree,tqdm,pybedtools and pysamv0.8.4+
 
+## Quantitative analysis
+
+## DESEQ
+
 
 # Long read data
 
@@ -147,16 +151,32 @@ $ python psl_to_gtf.py <collapse.output.bed> > <collapsed_isoforms.gtf>
 
 
 
+# Qualitative Evaluation 
+
+## The first part of the quality control was runnning SQANTI3 to get a first impression how good the assemblies are and if it is viable to conduct further downstream analysis on them
 
 
+### Installation and Dependencies
 
-
-
-
-
-
-
-
-
-
+Building from source , creating an environment, and activating it
+```shell
+ $ git clone https://github.com/ConesaLab/SQANTI3.git
+ $ cd SQANTI3
+ $ conda env create -f SQANTI3.conda_env.yml
+ $ source activate SQANTI3.env
+ ```
+ 
+ GTF to gene prediction is a obligatory utility for SQANTI3. It has to be downloaded directly into the SQANTI3/utilities folder
+ ```shell
+(SQANTI3.env)$ wget http://hgdownload.cse.ucsc.edu/admin/exe/linux.x86_64/gtfToGenePred -P <PATH:TO>/SQANTI3/utilities/chmod +x <PATH:TO>/SQANTI3/utilities/gtfToGenePred
+ 
+ Finally, before running the quality control pipeline, cDNA_Cupcake must also be downloaded, installed and the two folders  /SQANTI3/cDNA_Cupcake/sequence and /SQANTI3/cDNA_Cupcake/ have to be added to $PYTHONPATH
+ ```shell
+(SQANTI3.env)$ git clone https://github.com/Magdoll/cDNA_Cupcake.git
+(SQANTI3.env)$ cd cDNA_Cupcake
+(SQANTI3.env)$ python setup.py build
+(SQANTI3.env)$ python setup.py install
+(SQANTI3.env)$ export PYTHONPATH=$PYTHONPATH:/PATH:TO/SQANTI3/cDNA_Cupcake/sequence/
+(SQANTI3.env)$ export PYTHONPATH=$PYTHONPATH:/PATH:TO/MYO/SQANTI3/cDNA_Cupcake/
+```
 
