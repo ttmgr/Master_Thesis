@@ -169,6 +169,7 @@ Building from source , creating an environment, and activating it
  GTF to gene prediction is a obligatory utility for SQANTI3. It has to be downloaded directly into the SQANTI3/utilities folder
  ```shell
 (SQANTI3.env)$ wget http://hgdownload.cse.ucsc.edu/admin/exe/linux.x86_64/gtfToGenePred -P <PATH:TO>/SQANTI3/utilities/chmod +x <PATH:TO>/SQANTI3/utilities/gtfToGenePred
+ ```
  
  Finally, before running the quality control pipeline, cDNA_Cupcake must also be downloaded, installed and the two folders  /SQANTI3/cDNA_Cupcake/sequence and /SQANTI3/cDNA_Cupcake/ have to be added to $PYTHONPATH
  ```shell
