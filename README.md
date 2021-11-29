@@ -92,7 +92,7 @@ $ samtools sort <aligned_sample.bam> -o <sorted_aligned_sample.bam> [options]
 ### Afterwards StringTie2 is applied to assemble the transcriptome. The -L option is obligatory for long read based assemblies
 
 ```shell  
-$ stringtie -L <sorted_aligned_sample.bam> -o <assembly.gtf> [options]
+$ stringtie -L <sorted_aligned_sample.bam> -o <long_assembly.gtf> [options]
 ```
 
 
@@ -123,7 +123,7 @@ samtools sort <aligned_reads.bam> -o <sorted_reads.bam> [options]
 
 ### Afterwards StringTie2 is applied to assemble the transcriptome. The -L option is obligatory for long read based assemblies
 ```shell  
-$ stringtie <sorted_reads.bam> -o <assembly.gtf> [options]
+$ stringtie <sorted_reads.bam> -o <short_assembly.gtf> [options]
 ```
 
 
@@ -215,7 +215,23 @@ $ cat <SR.vs.LR.LR.gtf.refmap> | awk '$3=="="{print $2}' | sort > Sample.Common.
 $ cat <LR.vs.SR.SR.gtf.tmap> | awk '$3!="="{print $5}' | sort > Sample.UniqueSR.txt
 ```
 
+Third, gtfFilter is applied to filter out unique and common transcripts and create the corresponding assembly files
+```shell
+gtfFilter -m whiteT -l <common.txt> <long_read.gtf> <common.gtf>
+gtfFilter -m whiteT -l <long_read_unique.txt> <long_read_assembly.gtf> <long_read_unique.gtf>
+gtfFilter -m whiteT -l <short_read_unique.txt> <short_read_assembly.gtf> <short_read_unique.gtf>
+```
 
+Lastly, gffcompare is used to compare the different assemblies to the reference and and among themselves.
+```shell
+gffcompare -r <annotation.gtf> -o Reference.vs.ShortRead <short_read_assembly.gtf> 
+gffcompare -r <annotation.gtf> -o Reference.vs.ShortReadUnique <short_read_unique.gtf> 
+gffcompare -r <annotation.gtf> -o Reference.vs.LongRead LongRead.gtf <long_read_assembly.gtf
+gffcompare -r <annotation.gtf> -o Reference.vs.LongReadUnique <long_read_unique.gtf>
+gffcompare -r <annotation.gtf> -o Reference.vs.CommonReads <common.gtf>
+gffcompare -r <annotation.gtf> -o Reference.vs.MixedRead <mixed_assembly.gtf>
+gffcompare -r <mixed_assembly.gtf> -o MixedRead.vs.Concatenated <concatenated.gtf>
+```
 
 
 
