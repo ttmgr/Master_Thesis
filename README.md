@@ -112,7 +112,7 @@ STAR --runThreadN 10  --runMode genomeGenerate --genomeDir /path/to/STAR/genome/
 STAR --runThreadN 10 --runMode alignReads --outSAMtype BAM Unsorted --genomeDir /path/to/STAR/genome/folder --outFileNamePrefix {sample name} --readFilesIn <read1_file.fa> <read2_file.fa> --sdjdbGTFfile <reference_annotation.gtf> --twopassMode Basic --outSAMstrandField intronMotif
 ```
 
-### Now the reads have again to be sorted by coordinates with samtools. In theory sorting it on-the-fly within STAR is possible, but it requires a lot of computational resources.
+#### Now the reads have again to be sorted by coordinates with samtools. In theory sorting it on-the-fly within STAR is possible, but it requires a lot of computational resources.
 ```shell
 samtools sort <reads.bam> -o <sortedreads.bam> [options]
 ```
