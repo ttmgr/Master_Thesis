@@ -155,7 +155,6 @@ $ python psl_to_gtf.py <collapse.output.bed> > <collapsed_isoforms.gtf>
 
 ## The first part of the quality control was runnning SQANTI3 to get a first impression how good the assemblies are and if it is viable to conduct further downstream analysis on them
 
-
 ### Installation and Dependencies
 
 Building from source , creating an environment, and activating it
@@ -181,3 +180,9 @@ Building from source , creating an environment, and activating it
 (SQANTI3.env)$ export PYTHONPATH=$PYTHONPATH:/PATH:TO/MYO/SQANTI3/cDNA_Cupcake/
 ```
 
+### Necessary Input Assembled Transcriptome as GTF/GFF3 (with the --gtf option); but stringtie generates unwanted textlines within the gtf which have to be removed to conduct the quality control. Furthermore, before we cann apply SQANTI3 transcripts without strandinformation have to be removed from the transcriptome.
+
+```shell
+(SQANTI3.env) $ awk '$7 != "."' <assembly.gtf> > <cleaned_assembly.gtf>
+(SQANTI3.env) $ python sqanti3_qc.py --gtf <TranscriptomeOfInterest.Sample.gtf|gff3> <Annotation.gtf|gff3> <ReferemceGenome.Fasta> -t 24 
+```
