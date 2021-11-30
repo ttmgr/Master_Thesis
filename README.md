@@ -24,8 +24,13 @@ combined approach.
 -python v3.0+ and python modules: intervaltree,kerneltree,tqdm,pybedtools and pysamv0.8.4+
 
 ## Quantitative analysis
+-RStudio
+-gffread
+-subreads
+-salmon
 
 ## DESEQ
+-DESeq2
 
 
 # Long read data
