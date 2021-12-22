@@ -1,4 +1,42 @@
 # Master_Thesis - Tim Reska - 11182193
+# Tim Reska - 11182193 - Hybrid Assembly - Myo Dataset 
+
+# Short summary written Master Thesis
+
+- Introduction
+- Background Information
+  - Mouse Model - Why mice, advantages - applications
+  - Myogenesis - Why muscle proliferation is good for sequencing experiments and helpful in science in general
+- Sequencing 
+  - Illumina vs ONT   
+  - Hybrid Sequencing approaches 
+- Materials and Methods
+  - Materials
+- Methods 
+  - Qualitative Methods summary 
+  - Quantitative Methods summary 
+  - Isoform analysis and differential transcript usage summary
+- Results
+- Qualitative Analysis
+  - Reference versus Assemblies
+  I start with the quality control of sqanti, of the Myo samples versus the reference. I am explaining which kind of matches are the most important, and which are an indicator that the assemblies might be contaminated by artifacts or misassemblies e.g. high percentage of intergenic genes. 
+  - Cross-comparing assemblies
+  Afterwards comes the numerical comparison of the samples with respect to the assembly as well as the cross-comparison between the different assemblies in terms of precision and intron chain level. Lastly, I will show examples of transcripts only found by SR, LR or Mix in form of IGV Screenshots.
+- Quantitative Analysis
+The quantitative analysis will rely on generating quantitative expression scores and explaining these for the samples, as well as basic statistics for the read counts: avg. count per transcript, how many transcripts each method found.
+- Differential Analysis
+  - Up- and down-regulated genes
+  Here i will describe the differential gene expression, find examples of up- or down-regulated genes of which are necessary for the proliferation from myoblast to myotube. Show the differential gene expression of long reads and the mixed variants with the help of volcano plots, trying to highlight certain genes.  
+  - Differential isoform usage
+  Show examples for differential isoform usage, show differences in isoforms between flair and salmon transcripts
+- Outlook and Discussion
+  
+
+
+
+
+
+
 
 The following github presents a pipeline for the assembly of transcriptomes based on short or long reads as well as 
 combined approach.
